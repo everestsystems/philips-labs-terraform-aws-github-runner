@@ -45,15 +45,9 @@ rm -rf $file_name
 os_id=$(awk -F= '/^ID/{print $2}' /etc/os-release)
 echo OS: $os_id
 
-# Install libicu60 for arm64 on non-ubuntu
-if [[ "$architecture" == "arm64" ]] && [[ ! "$os_id" =~ ^ubuntu.* ]]; then
+# Install libicu for arm64
+if [[ "$architecture" == "arm64" ]] ; then
   yum install -y libicu
-fi
-
-# Install dependencies for ubuntu
-if [[ "$os_id" =~ ^ubuntu.* ]]; then
-    echo "Installing dependencies"
-    ./bin/installdependencies.sh
 fi
 
 echo "Set file ownership of action runner"
