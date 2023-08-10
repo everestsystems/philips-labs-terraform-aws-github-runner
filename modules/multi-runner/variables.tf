@@ -475,12 +475,6 @@ variable "lambda_security_group_ids" {
   default     = []
 }
 
-variable "cloudwatch_config" {
-  description = "(optional) Replaces the module default cloudwatch log config. See https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Agent-Configuration-File-Details.html for details."
-  type        = string
-  default     = null
-}
-
 variable "instance_profile_path" {
   description = "The path that will be added to the instance_profile, if not set the environment name will be used."
   type        = string
