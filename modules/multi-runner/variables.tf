@@ -462,6 +462,11 @@ variable "runners_lambda_zip" {
   default     = null
 }
 
+variable "cloudwatch_config" {
+  description = "(optional) Replaces the module default cloudwatch log config. See https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Agent-Configuration-File-Details.html for details."
+  type        = string
+  default     = null
+}
 
 variable "lambda_subnet_ids" {
   description = "List of subnets in which the action runners will be launched, the subnets needs to be subnets in the `vpc_id`."
