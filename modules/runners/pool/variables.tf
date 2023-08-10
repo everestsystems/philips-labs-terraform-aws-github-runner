@@ -2,7 +2,6 @@ variable "config" {
   type = object({
     lambda = object({
       log_level                      = string
-      log_type                       = string
       logging_retention_in_days      = number
       logging_kms_key_id             = string
       reserved_concurrent_executions = number
@@ -29,8 +28,9 @@ variable "config" {
     runner = object({
       disable_runner_autoupdate = bool
       ephemeral                 = bool
+      enable_jit_config         = bool
       boot_time_in_minutes      = number
-      extra_labels              = string
+      labels                    = string
       launch_template = object({
         name = string
       })
@@ -55,8 +55,10 @@ variable "config" {
     ami_kms_key_arn                      = string
     role_path                            = string
     ssm_token_path                       = string
+    ssm_config_path                      = string
     ami_id_ssm_parameter_name            = string
     ami_id_ssm_parameter_read_policy_arn = string
+    arn_ssm_parameters_path_config       = string
   })
 }
 
@@ -64,4 +66,10 @@ variable "aws_partition" {
   description = "(optional) partition for the arn if not 'aws'"
   type        = string
   default     = "aws"
+}
+
+variable "lambda_tracing_mode" {
+  description = "Enable X-Ray tracing for the lambda functions."
+  type        = string
+  default     = null
 }

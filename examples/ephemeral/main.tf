@@ -71,12 +71,12 @@ module "runners" {
 
   # configure your pre-built AMI
   # enable_userdata = false
-  # ami_filter       = { name = ["github-runner-amzn2-x86_64-*"] }
+  # ami_filter       = { name = ["github-runner-amzn2-x86_64-*"], state = ["available"] }
   # data "aws_caller_identity" "current" {}
   # ami_owners       = [data.aws_caller_identity.current.account_id]
 
-  # Enable logging
-  log_level = "debug"
+  # Enable debug logging for the lambda functions
+  # log_level = "debug"
 
   # Setup a dead letter queue, by default scale up lambda will kepp retrying to process event in case of scaling error.
   # redrive_policy_build_queue = {

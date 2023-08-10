@@ -51,9 +51,9 @@ If your issue appears to be a bug, and hasn't been reported, open a new issue. H
 
 **If you get help, help others. Good karma rulez!**
 
-### Submitting a Merge Request
+### Submitting a Pull Request
 
-Before you submit your merge request consider the following guidelines:
+Before you submit your pull request consider the following guidelines:
 
 * Make your changes in a new git branch:
 
@@ -62,9 +62,17 @@ Before you submit your merge request consider the following guidelines:
     ```
 
 * Create your patch, **including appropriate test cases**.
-* Install [Terraform](https://www.terraform.io/). We lock the version with [tvenv](https://github.com/tfutils/tfenv), check `required_version` in `versions.tf` for the current development version of the module.
-* Install [pre-commit hooks](https://pre-commit.com/). The hooks runs some basic checks and update the docs. The commit will run the hooks, you can invoke the hooks manually `pre-commit run --all-files` as well.
-* Commit your changes using a descriptive commit message.
+* Install [Terraform](https://www.terraform.io/). We lock the version with [tfenv](https://github.com/tfutils/tfenv), check `required_version` in `versions.tf` for the current development version of the module.
+* Install [pre-commit hooks](https://pre-commit.com/). The hooks runs some basic checks. The commit will run the hooks, you can invoke the hooks manually `pre-commit run --all-files` as well. The hooks require tflint to be installed and terraform modules to be initialized.
+    * Install [tflint](https://github.com/terraform-linters/tflint). We use tflint to lint the terraform code.
+    * Initialize the terraform modules:
+
+        ```shell
+        terraform init
+        ```
+
+* For updating docs, you have to enable GitHub actions on your forked repository. Simply go to the tab Actions and enable actions.
+* Commit your changes using a descriptive commit message:
 
     ```shell
     git commit -a
@@ -72,7 +80,19 @@ Before you submit your merge request consider the following guidelines:
 
   Note: the optional commit `-a` command line option will automatically "add" and "rm" edited files.
 
+* Install [node](https://nodejs.org/en/) and [yarn](https://yarnpkg.com/). We use yarn to lint, test and build the lambdas.
 * Build your changes locally to ensure all the tests pass:
+
+        ```shell
+        cd lambdas
+        yarn install
+        yarn format
+        yarn lint
+        yarn test
+        yarn build
+        cd ..
+        ```
+
 * Push your branch to Github:
 
     ```shell

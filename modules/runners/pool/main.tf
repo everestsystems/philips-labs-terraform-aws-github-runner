@@ -17,8 +17,10 @@ resource "aws_lambda_function" "pool" {
 
   environment {
     variables = {
+      AMI_ID_SSM_PARAMETER_NAME            = var.config.ami_id_ssm_parameter_name
       DISABLE_RUNNER_AUTOUPDATE            = var.config.runner.disable_runner_autoupdate
       ENABLE_EPHEMERAL_RUNNERS             = var.config.runner.ephemeral
+      ENABLE_JIT_CONFIG                    = var.config.runner.enable_jit_config
       ENVIRONMENT                          = var.config.prefix
       GHES_URL                             = var.config.ghes.url
       INSTANCE_ALLOCATION_STRATEGY         = var.config.instance_allocation_strategy
@@ -27,18 +29,19 @@ resource "aws_lambda_function" "pool" {
       INSTANCE_TYPES                       = join(",", var.config.instance_types)
       LAUNCH_TEMPLATE_NAME                 = var.config.runner.launch_template.name
       LOG_LEVEL                            = var.config.lambda.log_level
-      LOG_TYPE                             = var.config.lambda.log_type
       NODE_TLS_REJECT_UNAUTHORIZED         = var.config.ghes.url != null && !var.config.ghes.ssl_verify ? 0 : 1
       PARAMETER_GITHUB_APP_ID_NAME         = var.config.github_app_parameters.id.name
       PARAMETER_GITHUB_APP_KEY_BASE64_NAME = var.config.github_app_parameters.key_base64.name
+      POWERTOOLS_LOGGER_LOG_EVENT          = var.config.lambda.log_level == "debug" ? "true" : "false"
       RUNNER_BOOT_TIME_IN_MINUTES          = var.config.runner.boot_time_in_minutes
-      RUNNER_EXTRA_LABELS                  = var.config.runner.extra_labels
+      RUNNER_LABELS                        = var.config.runner.labels
       RUNNER_GROUP_NAME                    = var.config.runner.group_name
       RUNNER_NAME_PREFIX                   = var.config.runner.name_prefix
       RUNNER_OWNER                         = var.config.runner.pool_owner
+      SERVICE_NAME                         = "runners-pool"
       SSM_TOKEN_PATH                       = var.config.ssm_token_path
+      SSM_CONFIG_PATH                      = var.config.ssm_config_path
       SUBNET_IDS                           = join(",", var.config.subnet_ids)
-      AMI_ID_SSM_PARAMETER_NAME            = var.config.ami_id_ssm_parameter_name
     }
   }
 
@@ -47,6 +50,13 @@ resource "aws_lambda_function" "pool" {
     content {
       security_group_ids = var.config.lambda.security_group_ids
       subnet_ids         = var.config.lambda.subnet_ids
+    }
+  }
+
+  dynamic "tracing_config" {
+    for_each = var.lambda_tracing_mode != null ? [true] : []
+    content {
+      mode = var.lambda_tracing_mode
     }
   }
 }
@@ -70,11 +80,12 @@ resource "aws_iam_role_policy" "pool" {
   name = "${var.config.prefix}-lambda-pool-policy"
   role = aws_iam_role.pool.name
   policy = templatefile("${path.module}/policies/lambda-pool.json", {
-    arn_runner_instance_role  = var.config.runner.role.arn
-    github_app_id_arn         = var.config.github_app_parameters.id.arn
-    github_app_key_base64_arn = var.config.github_app_parameters.key_base64.arn
-    kms_key_arn               = var.config.kms_key_arn
-    ami_kms_key_arn           = var.config.ami_kms_key_arn
+    arn_ssm_parameters_path_config = var.config.arn_ssm_parameters_path_config
+    arn_runner_instance_role       = var.config.runner.role.arn
+    github_app_id_arn              = var.config.github_app_parameters.id.arn
+    github_app_key_base64_arn      = var.config.github_app_parameters.key_base64.arn
+    kms_key_arn                    = var.config.kms_key_arn
+    ami_kms_key_arn                = var.config.ami_kms_key_arn
   })
 }
 
@@ -84,14 +95,6 @@ resource "aws_iam_role_policy" "pool_logging" {
   policy = templatefile("${path.module}/../policies/lambda-cloudwatch.json", {
     log_group_arn = aws_cloudwatch_log_group.pool.arn
   })
-}
-
-resource "aws_iam_role_policy" "lambda_pool_vpc" {
-  count = length(var.config.lambda.subnet_ids) > 0 && length(var.config.lambda.security_group_ids) > 0 ? 1 : 0
-  name  = "${var.config.prefix}-lambda-pool-vpc"
-  role  = aws_iam_role.pool.id
-
-  policy = file("${path.module}/../policies/lambda-vpc.json")
 }
 
 resource "aws_iam_role_policy_attachment" "pool_vpc_execution_role" {
@@ -145,4 +148,28 @@ resource "aws_iam_role_policy_attachment" "ami_id_ssm_parameter_read" {
   count      = var.config.ami_id_ssm_parameter_name != null ? 1 : 0
   role       = aws_iam_role.pool.name
   policy_arn = var.config.ami_id_ssm_parameter_read_policy_arn
+}
+
+# lambda xray policy
+data "aws_iam_policy_document" "lambda_xray" {
+  count = var.lambda_tracing_mode != null ? 1 : 0
+  statement {
+    actions = [
+      "xray:BatchGetTraces",
+      "xray:GetTraceSummaries",
+      "xray:PutTelemetryRecords",
+      "xray:PutTraceSegments"
+    ]
+    effect = "Allow"
+    resources = [
+      "*"
+    ]
+    sid = "AllowXRay"
+  }
+}
+
+resource "aws_iam_role_policy" "pool_xray" {
+  count  = var.lambda_tracing_mode != null ? 1 : 0
+  policy = data.aws_iam_policy_document.lambda_xray[0].json
+  role   = aws_iam_role.pool.name
 }

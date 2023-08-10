@@ -154,6 +154,7 @@ module "webhook" {
   lambda_architecture                           = var.lambda_architecture
   lambda_zip                                    = var.webhook_lambda_zip
   lambda_timeout                                = var.webhook_lambda_timeout
+  lambda_tracing_mode                           = var.lambda_tracing_mode
   logging_retention_in_days                     = var.logging_retention_in_days
   logging_kms_key_id                            = var.logging_kms_key_id
 
@@ -165,7 +166,6 @@ module "webhook" {
   lambda_security_group_ids = var.lambda_security_group_ids
   aws_partition             = var.aws_partition
 
-  log_type  = var.log_type
   log_level = var.log_level
 }
 
@@ -208,6 +208,7 @@ module "runners" {
   github_app_parameters                = local.github_app_parameters
   enable_organization_runners          = var.enable_organization_runners
   enable_ephemeral_runners             = var.enable_ephemeral_runners
+  enable_jit_config                    = var.enable_jit_config
   enable_job_queued_check              = var.enable_job_queued_check
   disable_runner_autoupdate            = var.disable_runner_autoupdate
   enable_managed_runner_security_group = var.enable_managed_runner_security_group
@@ -215,7 +216,7 @@ module "runners" {
   scale_down_schedule_expression       = var.scale_down_schedule_expression
   minimum_running_time_in_minutes      = var.minimum_running_time_in_minutes
   runner_boot_time_in_minutes          = var.runner_boot_time_in_minutes
-  runner_extra_labels                  = var.runner_extra_labels
+  runner_labels                        = local.runner_labels
   runner_as_root                       = var.runner_as_root
   runner_run_as                        = var.runner_run_as
   runners_maximum_count                = var.runners_maximum_count
@@ -224,6 +225,7 @@ module "runners" {
   egress_rules                         = var.runner_egress_rules
   runner_additional_security_group_ids = var.runner_additional_security_group_ids
   metadata_options                     = var.runner_metadata_options
+  credit_specification                 = var.runner_credit_specification
 
   enable_runner_binaries_syncer    = var.enable_runner_binaries_syncer
   lambda_s3_bucket                 = var.lambda_s3_bucket
@@ -236,6 +238,7 @@ module "runners" {
   lambda_timeout_scale_down        = var.runners_scale_down_lambda_timeout
   lambda_subnet_ids                = var.lambda_subnet_ids
   lambda_security_group_ids        = var.lambda_security_group_ids
+  lambda_tracing_mode              = var.lambda_tracing_mode
   logging_retention_in_days        = var.logging_retention_in_days
   logging_kms_key_id               = var.logging_kms_key_id
   enable_cloudwatch_agent          = var.enable_cloudwatch_agent
@@ -267,7 +270,6 @@ module "runners" {
 
   kms_key_arn = var.kms_key_arn
 
-  log_type  = var.log_type
   log_level = var.log_level
 
   pool_config                                = var.pool_config
@@ -284,7 +286,7 @@ module "runner_binaries" {
   prefix = var.prefix
   tags   = local.tags
 
-  distribution_bucket_name = "${var.prefix}-dist-${random_string.random.result}"
+  distribution_bucket_name = lower("${var.prefix}-dist-${random_string.random.result}")
   s3_logging_bucket        = var.runner_binaries_s3_logging_bucket
   s3_logging_bucket_prefix = var.runner_binaries_s3_logging_bucket_prefix
 
@@ -299,16 +301,17 @@ module "runner_binaries" {
   lambda_architecture             = var.lambda_architecture
   lambda_zip                      = var.runner_binaries_syncer_lambda_zip
   lambda_timeout                  = var.runner_binaries_syncer_lambda_timeout
+  lambda_tracing_mode             = var.lambda_tracing_mode
   logging_retention_in_days       = var.logging_retention_in_days
   logging_kms_key_id              = var.logging_kms_key_id
 
   enable_event_rule_binaries_syncer    = var.enable_event_rule_binaries_syncer
   server_side_encryption_configuration = var.runner_binaries_s3_sse_configuration
+  s3_versioning                        = var.runner_binaries_s3_versioning
 
   role_path                 = var.role_path
   role_permissions_boundary = var.role_permissions_boundary
 
-  log_type  = var.log_type
   log_level = var.log_level
 
   lambda_subnet_ids         = var.lambda_subnet_ids

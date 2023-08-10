@@ -127,7 +127,12 @@ variable "instance_types" {
 variable "ami_filter" {
   description = "Map of lists used to create the AMI filter for the action runner AMI."
   type        = map(list(string))
-  default     = null
+  default     = { state = ["available"] }
+  validation {
+    // check the availability of the AMI
+    condition     = contains(keys(var.ami_filter), "state")
+    error_message = "The \"ami_filter\" variable must contain the \"state\" key with the value \"available\"."
+  }
 }
 
 variable "ami_owners" {
@@ -209,10 +214,9 @@ variable "runner_boot_time_in_minutes" {
   default     = 5
 }
 
-variable "runner_extra_labels" {
-  description = "Extra labels for the runners (GitHub). Separate each label by a comma"
+variable "runner_labels" {
+  description = "All the labels for the runners (GitHub) including the default one's(e.g: self-hosted, linux, x64, label1, label2). Separate each label by a comma"
   type        = string
-  default     = ""
 }
 
 variable "runner_group_name" {
@@ -290,9 +294,10 @@ variable "runner_architecture" {
 variable "idle_config" {
   description = "List of time period that can be defined as cron expression to keep a minimum amount of runners active instead of scaling down to 0. By defining this list you can ensure that in time periods that match the cron expression within 5 seconds a runner is kept idle."
   type = list(object({
-    cron      = string
-    timeZone  = string
-    idleCount = number
+    cron             = string
+    timeZone         = string
+    idleCount        = number
+    evictionStrategy = optional(string, "oldest_first")
   }))
   default = []
 }
@@ -456,14 +461,10 @@ variable "egress_rules" {
 variable "log_type" {
   description = "Logging format for lambda logging. Valid values are 'json', 'pretty', 'hidden'. "
   type        = string
-  default     = "pretty"
+  default     = null
   validation {
-    condition = anytrue([
-      var.log_type == "json",
-      var.log_type == "pretty",
-      var.log_type == "hidden",
-    ])
-    error_message = "`log_type` value not valid. Valid values are 'json', 'pretty', 'hidden'."
+    condition     = var.log_type == null
+    error_message = "DEPRECATED: `log_type` is not longer supported."
   }
 }
 
@@ -542,7 +543,7 @@ variable "pool_config" {
 }
 
 variable "disable_runner_autoupdate" {
-  description = "Disable the auto update of the github runner agent. Be-aware there is a grace period of 30 days, see also the [GitHub article](https://github.blog/changelog/2022-02-01-github-actions-self-hosted-runners-can-now-disable-automatic-updates/)"
+  description = "Disable the auto update of the github runner agent. Be aware there is a grace period of 30 days, see also the [GitHub article](https://github.blog/changelog/2022-02-01-github-actions-self-hosted-runners-can-now-disable-automatic-updates/)"
   type        = bool
   default     = false
 }
@@ -591,4 +592,27 @@ variable "runner_name_prefix" {
     condition     = length(var.runner_name_prefix) <= 45
     error_message = "The prefix used for the GitHub runner name must be less than 32 characters. AWS instances id are 17 chars, https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/resource-ids.html"
   }
+}
+
+variable "lambda_tracing_mode" {
+  description = "Enable X-Ray tracing for the lambda functions."
+  type        = string
+  default     = null
+}
+
+variable "credit_specification" {
+  description = "The credit option for CPU usage of a T instance. Can be unset, \"standard\" or \"unlimited\"."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.credit_specification == null ? true : contains(["standard", "unlimited"], var.credit_specification)
+    error_message = "Valid values for credit_specification are (null, \"standard\", \"unlimited\")."
+  }
+}
+
+variable "enable_jit_config" {
+  description = "Overwrite the default behavior for JIT configuration. By default JIT configuration is enabled for ephemeral runners and disabled for non-ephemeral runners. In case of GHES check first if the JIT config API is avaialbe. In case you upgradeing from 3.x to 4.x you can set `enable_jit_config` to `false` to avoid a breaking change when having your own AMI."
+  type        = bool
+  default     = null
 }

@@ -62,6 +62,9 @@ module "runners" {
   #   }
   # }
 
+  # enable S3 versioning for runners S3 bucket
+  # runner_binaries_s3_versioning = "Enabled"
+
   # Uncommet idle config to have idle runners from 9 to 5 in time zone Amsterdam
   # idle_config = [{
   #   cron      = "* * 9-17 * * *"
@@ -90,4 +93,7 @@ module "runners" {
 
   # prefix GitHub runners with the environment name
   runner_name_prefix = "${local.environment}_"
+
+  # Enable debug logging for the lambda functions
+  # log_level = "debug"
 }
